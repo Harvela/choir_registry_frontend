@@ -63,6 +63,7 @@ interface AttendanceFilterDto {
   sortOrder?: 'ASC' | 'DESC';
   page?: number;
   limit?: number;
+  participationBucket?: 0 | 50 | 80 | 100;
 }
 
 // Map event types to user categories and commissions
@@ -498,9 +499,49 @@ export const useAttendance = (options: UseAttendanceOptions = {}) => {
       headers.push('P', 'A', 'R');
       tableData.push(headers);
 
+      const hasParticipationFilter =
+        exportFilters.participationBucket !== undefined;
+
       let memberIndex = 1;
       sortedUsers.forEach((user) => {
         const userAttendance = attendance[user.id] || [];
+
+        if (hasParticipationFilter) {
+          const recordsInRange = userAttendance.filter((record) => {
+            const inDateRange =
+              (!exportFilters.startDate ||
+                record.date >= exportFilters.startDate) &&
+              (!exportFilters.endDate || record.date <= exportFilters.endDate);
+            const sameEventType = record.eventType === selectedEventType;
+            return inDateRange && sameEventType;
+          });
+
+          const total = recordsInRange.length;
+          const participated = recordsInRange.filter(
+            (r) =>
+              r.status === AttendanceStatus.PRESENT ||
+              r.status === AttendanceStatus.LATE,
+          ).length;
+
+          const percentage = total === 0 ? 0 : (participated / total) * 100;
+
+          const bucket = exportFilters.participationBucket;
+          const matchesBucket =
+            bucket === 0
+              ? percentage === 0
+              : bucket === 50
+                ? percentage >= 50 && percentage <= 60
+                : bucket === 80
+                  ? percentage >= 80 && percentage <= 90
+                  : bucket === 100
+                    ? percentage === 100
+                    : true;
+
+          if (!matchesBucket) {
+            return;
+          }
+        }
+
         const row = [memberIndex, user.lastName, user.firstName];
 
         let presences = 0;
@@ -700,7 +741,40 @@ export const useAttendance = (options: UseAttendanceOptions = {}) => {
           record.date >= filters.startDate! && record.date <= filters.endDate!,
       );
 
-    return matchesStatus && matchesDate;
+    if (!matchesStatus || !matchesDate) return false;
+
+    if (filters.participationBucket !== undefined) {
+      const recordsInRange = userAttendance.filter((record) => {
+        const inDateRange =
+          (!filters.startDate || record.date >= filters.startDate) &&
+          (!filters.endDate || record.date <= filters.endDate);
+        const sameEventType = record.eventType === selectedEventType;
+        return inDateRange && sameEventType;
+      });
+      const total = recordsInRange.length;
+      const participated = recordsInRange.filter(
+        (r) =>
+          r.status === AttendanceStatus.PRESENT ||
+          r.status === AttendanceStatus.LATE,
+      ).length;
+      const percentage = total === 0 ? 0 : (participated / total) * 100;
+
+      const bucket = filters.participationBucket;
+      const matchesBucket =
+        bucket === 0
+          ? percentage === 0
+          : bucket === 50
+            ? percentage >= 50 && percentage <= 60
+            : bucket === 80
+              ? percentage >= 80 && percentage <= 90
+              : bucket === 100
+                ? percentage === 100
+                : true;
+
+      if (!matchesBucket) return false;
+    }
+
+    return true;
   });
 
   return {

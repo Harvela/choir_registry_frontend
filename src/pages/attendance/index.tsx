@@ -623,6 +623,26 @@ const AttendancePage: React.FC = () => {
             }
             className="rounded-md border p-1 text-[10px] md:p-2 md:text-[14px]"
           />
+
+          <select
+            value={filters.participationBucket ?? ''}
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                participationBucket:
+                  e.target.value === ''
+                    ? undefined
+                    : (Number(e.target.value) as 0 | 50 | 80 | 100),
+              })
+            }
+            className="rounded-md border p-1 text-[10px] md:p-2 md:text-[14px]"
+          >
+            <option value="">Participation</option>
+            <option value="0">0%</option>
+            <option value="50">50–60%</option>
+            <option value="80">80–90%</option>
+            <option value="100">100%</option>
+          </select>
         </div>
 
         <EventTypeSelector
