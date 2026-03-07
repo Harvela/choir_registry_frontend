@@ -80,6 +80,14 @@ export const LouadoScheduleTable: React.FC<LouadoScheduleTableProps> = ({
   onExport,
 }) => {
   const title = useMemo(() => monthRangeLabel(shifts), [shifts]);
+  const sortedShifts = useMemo(
+    () =>
+      [...shifts].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+    [shifts],
+  );
 
   return (
     <div className="space-y-6">
@@ -127,11 +135,13 @@ export const LouadoScheduleTable: React.FC<LouadoScheduleTableProps> = ({
         <table className="min-w-full divide-y divide-emerald-200">
           <thead>
             <tr className="bg-emerald-700 text-xs uppercase tracking-widest text-emerald-50 md:text-sm">
-              <th className="px-4 py-3 text-center">Date</th>
-              <th className="px-4 py-3 text-center">Louange</th>
-              <th className="px-4 py-3 text-center">Adoration</th>
-              <th className="px-4 py-3 text-left">Obs</th>
-              {canManage && <th className="px-4 py-3 text-right">Actions</th>}
+              <th className="px-4 py-3 text-center align-middle">Date</th>
+              <th className="px-4 py-3 text-center align-middle">Louange</th>
+              <th className="px-4 py-3 text-center align-middle">Adoration</th>
+              <th className="px-4 py-3 text-left align-middle">Obs</th>
+              {canManage && (
+                <th className="px-4 py-3 text-right align-middle">Actions</th>
+              )}
             </tr>
           </thead>
           <tbody className="bg-emerald-50">
@@ -139,41 +149,41 @@ export const LouadoScheduleTable: React.FC<LouadoScheduleTableProps> = ({
               <tr>
                 <td
                   colSpan={canManage ? 5 : 4}
-                  className="px-4 py-8 text-center text-sm text-emerald-700"
+                  className="px-4 py-8 text-center align-middle text-sm text-emerald-700"
                 >
                   Chargement du calendrier Louado...
                 </td>
               </tr>
-            ) : shifts.length === 0 ? (
+            ) : sortedShifts.length === 0 ? (
               <tr>
                 <td
                   colSpan={canManage ? 5 : 4}
-                  className="px-4 py-10 text-center text-sm text-emerald-700"
+                  className="px-4 py-10 text-center align-middle text-sm text-emerald-700"
                 >
                   Aucun shift Louado enregistré pour la période sélectionnée.
                 </td>
               </tr>
             ) : (
-              shifts.map((shift) => (
+              sortedShifts.map((shift) => (
                 <tr
                   key={shift.id}
                   className="border-b border-emerald-100 text-sm text-emerald-900 transition-colors even:bg-emerald-100/60 hover:bg-emerald-100"
                 >
-                  <td className="px-4 py-3 text-center font-semibold uppercase tracking-wide">
+                  <td className="px-4 py-3 text-center align-middle font-semibold uppercase tracking-wide">
                     {formatDateForCell(shift.date)}
                   </td>
-                  <td className="px-4 py-3 text-center font-semibold">
+                  <td className="px-4 py-3 text-center align-middle font-semibold">
                     {renderName(shift.louange)}
                   </td>
-                  <td className="px-4 py-3 text-center font-semibold">
+                  <td className="px-4 py-3 text-center align-middle font-semibold">
                     {renderName(shift.adoration)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-emerald-800">
+                  <td className="px-4 py-3 text-left align-middle text-sm text-emerald-800">
                     {shift.notes || ''}
                   </td>
                   {canManage && (
-                    <td className="px-4 py-3 text-right text-sm">
-                      <div className="flex justify-end gap-2 text-emerald-700">
+                    <td className="px-4 py-3 text-right align-middle text-sm">
+                      <div className="flex items-center justify-end gap-2 text-emerald-700">
                         <button
                           className={`rounded-md border border-transparent p-2 transition-colors ${
                             disableManageActions

@@ -151,7 +151,7 @@ export const LouadoShiftForm: React.FC<LouadoShiftFormProps> = ({
             </option>
             {availableMembers.map((member) => (
               <option key={member.id} value={member.id}>
-                {`${member.firstName || ''} ${member.lastName || ''}`.trim()}
+                {`${member.lastName || ''} ${member.firstName || ''}`.trim()}
               </option>
             ))}
           </select>
@@ -176,7 +176,7 @@ export const LouadoShiftForm: React.FC<LouadoShiftFormProps> = ({
             </option>
             {availableMembers.map((member) => (
               <option key={member.id} value={member.id}>
-                {`${member.firstName || ''} ${member.lastName || ''}`.trim()}
+                {`${member.lastName || ''}${member.firstName || ''}`.trim()}
               </option>
             ))}
           </select>
