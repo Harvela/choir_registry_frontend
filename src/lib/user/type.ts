@@ -81,7 +81,8 @@ export interface User {
   commissions: Commission[];
   matricule: string;
   categories: UserCategory[];
-  fingerprintData: string | null;
+  /** Omitted from list/detail JSON after API serialization; create/update payloads may still send null. */
+  fingerprintData?: string | null;
   voiceCategory: string | null;
   joinDate: string;
   isActive: boolean;

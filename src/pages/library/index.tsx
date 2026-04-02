@@ -30,7 +30,6 @@ import {
   statusOptions,
   useDeleteSong,
   useSongs,
-  useSongStats,
 } from '@/lib/library/logic';
 import { exportSongListToPDF } from '@/lib/library/pdf-export';
 import { useAuth } from '@/providers/AuthProvider';
@@ -56,8 +55,33 @@ const LibraryPage = () => {
 
   const { user } = useAuth();
   const { songs, isLoading, error, refetch } = useSongs();
-  const { stats } = useSongStats();
   const { deleteSong, isLoading: isDeleting } = useDeleteSong();
+
+  // Compute stats from songs (single source of truth - matches useSongs data)
+  const stats = useMemo(() => {
+    const list = Array.isArray(songs) ? songs : [];
+    const now = new Date();
+    const oneMonthAgo = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      now.getDate(),
+    );
+    return {
+      totalSongs: list.length,
+      activeRepertoire: list.filter(
+        (s) => (s.status || '').toLowerCase() === SongStatus.ACTIVE.toLowerCase(),
+      ).length,
+      archived: list.filter(
+        (s) =>
+          (s.status || '').toLowerCase() ===
+          SongStatus.ARCHIVED.toLowerCase(),
+      ).length,
+      newAdditions: list.filter((s) => {
+        if (!s.createdAt) return false;
+        return new Date(s.createdAt) >= oneMonthAgo;
+      }).length,
+    };
+  }, [songs]);
 
   // Check if user can manage songs (SUPER_ADMIN or LEAD category users)
   const canManageSongsPermission = user
@@ -88,6 +112,11 @@ const LibraryPage = () => {
       });
     }
 
+    // Sort alphabetically by title
+    result = [...result].sort((a, b) =>
+      (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }),
+    );
+
     return result;
   }, [songs, searchTerm, filters]);
 
@@ -114,7 +143,7 @@ const LibraryPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Memoize stats data
+  // Stats cards data
   const statsData = useMemo(
     () => [
       {
@@ -128,8 +157,8 @@ const LibraryPage = () => {
         icon: <FaUsers className="ml-2 text-xl text-orange-400" />,
       },
       {
-        label: 'En Répétition',
-        value: stats.inRehearsal,
+        label: 'Archivés',
+        value: stats.archived,
         icon: <FaClock className="ml-2 text-xl text-orange-400" />,
       },
       {

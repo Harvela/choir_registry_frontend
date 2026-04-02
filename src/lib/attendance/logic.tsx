@@ -63,7 +63,7 @@ interface AttendanceFilterDto {
   sortOrder?: 'ASC' | 'DESC';
   page?: number;
   limit?: number;
-  participationBucket?: 0 | 50 | 80 | 100;
+  participationBucket?: 0 | 1 | 50 | 80;
 }
 
 // Map event types to user categories and commissions
@@ -529,12 +529,12 @@ export const useAttendance = (options: UseAttendanceOptions = {}) => {
           const matchesBucket =
             bucket === 0
               ? percentage === 0
-              : bucket === 50
-                ? percentage >= 50 && percentage <= 60
-                : bucket === 80
-                  ? percentage >= 80 && percentage <= 90
-                  : bucket === 100
-                    ? percentage === 100
+              : bucket === 1
+                ? percentage >= 1 && percentage <= 49
+                : bucket === 50
+                  ? percentage >= 50 && percentage <= 79
+                  : bucket === 80
+                    ? percentage >= 80 && percentage <= 100
                     : true;
 
           if (!matchesBucket) {
@@ -763,12 +763,12 @@ export const useAttendance = (options: UseAttendanceOptions = {}) => {
       const matchesBucket =
         bucket === 0
           ? percentage === 0
-          : bucket === 50
-            ? percentage >= 50 && percentage <= 60
-            : bucket === 80
-              ? percentage >= 80 && percentage <= 90
-              : bucket === 100
-                ? percentage === 100
+          : bucket === 1
+            ? percentage >= 1 && percentage <= 49
+            : bucket === 50
+              ? percentage >= 50 && percentage <= 79
+              : bucket === 80
+                ? percentage >= 80 && percentage <= 100
                 : true;
 
       if (!matchesBucket) return false;

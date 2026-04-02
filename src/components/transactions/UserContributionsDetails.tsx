@@ -51,7 +51,11 @@ const UserContributionsDetails: React.FC<UserContributionsDetailsProps> = ({
   const [filters, setFilters] = useState<TransactionFilterDto>({});
 
   // Use the transactions hook from logic.ts
-  const { data: transactionData, error: queryError } = useTransactions({
+  const {
+    data: transactionData,
+    error: queryError,
+    isLoading: transactionsLoading,
+  } = useTransactions({
     contributorId: user.id,
     type: TransactionType.INCOME,
     ...filters,
@@ -61,7 +65,7 @@ const UserContributionsDetails: React.FC<UserContributionsDetailsProps> = ({
 
   // Safely access the transactions data
   const transactions = transactionData?.data || [];
-  const error = queryError || transactionData?.error;
+  const error = queryError;
 
   // Get current records for pagination
   const indexOfLastRecord = currentPage * recordsPerPage;
@@ -320,7 +324,7 @@ const UserContributionsDetails: React.FC<UserContributionsDetailsProps> = ({
         )}
 
         {/* Loading state */}
-        {transactionData?.isLoading && (
+        {transactionsLoading && (
           <div className="flex justify-center py-8">
             <div className="flex flex-col items-center gap-3">
               <div className="size-8 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
@@ -332,7 +336,7 @@ const UserContributionsDetails: React.FC<UserContributionsDetailsProps> = ({
         )}
 
         {/* Mobile Transactions View */}
-        {!transactionData?.isLoading && transactions?.length > 0 && (
+        {!transactionsLoading && transactions?.length > 0 && (
           <div className="space-y-4 md:hidden">
             <h3 className="text-lg font-semibold text-gray-900">
               Historique des Contributions
@@ -402,7 +406,7 @@ const UserContributionsDetails: React.FC<UserContributionsDetailsProps> = ({
         )}
 
         {/* Desktop Transactions Table */}
-        {!transactionData?.isLoading && transactions?.length > 0 && (
+        {!transactionsLoading && transactions?.length > 0 && (
           <div className="hidden md:block">
             <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
               <div className="border-b border-gray-200 bg-gray-50 px-6 py-4">
@@ -504,7 +508,7 @@ const UserContributionsDetails: React.FC<UserContributionsDetailsProps> = ({
         )}
 
         {/* No data state */}
-        {!transactionData?.isLoading && transactions?.length === 0 && (
+        {!transactionsLoading && transactions?.length === 0 && (
           <div className="py-12 text-center">
             <div className="flex flex-col items-center gap-4">
               <div className="rounded-full bg-gray-100 p-6">

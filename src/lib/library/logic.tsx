@@ -64,7 +64,7 @@ export interface SongFilter {
 export interface SongStats {
   totalSongs: number;
   activeRepertoire: number;
-  inRehearsal: number;
+  archived: number;
   newAdditions: number;
 }
 
@@ -385,7 +385,7 @@ export const useSongStats = () => {
   const [stats, setStats] = useState<SongStats>({
     totalSongs: 0,
     activeRepertoire: 0,
-    inRehearsal: 0,
+    archived: 0,
     newAdditions: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -410,8 +410,11 @@ export const useSongStats = () => {
         return;
       }
 
-      // Fetch all songs to calculate stats
-      const response = await api.get('/songs');
+      // Fetch all songs to calculate stats (paginate to avoid API default limit)
+      const params = new URLSearchParams();
+      params.append('page', '1');
+      params.append('limit', '1000');
+      const response = await api.get(`/songs?${params.toString()}`);
 
       // Handle different response formats
       let songs: Song[] = [];
@@ -443,10 +446,14 @@ export const useSongStats = () => {
       const calculatedStats: SongStats = {
         totalSongs: songs.length,
         activeRepertoire: songs.filter(
-          (song) => song.status === SongStatus.ACTIVE,
+          (song) =>
+            (song.status || '').toLowerCase() ===
+            SongStatus.ACTIVE.toLowerCase(),
         ).length,
-        inRehearsal: songs.filter(
-          (song) => song.status === SongStatus.IN_REHEARSAL,
+        archived: songs.filter(
+          (song) =>
+            (song.status || '').toLowerCase() ===
+            SongStatus.ARCHIVED.toLowerCase(),
         ).length,
         newAdditions: songs.filter((song) => {
           if (!song.createdAt) return false;

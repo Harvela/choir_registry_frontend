@@ -1,5 +1,10 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  type UseQueryResult,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale/fr';
 import { jsPDF as JSPDF } from 'jspdf';
@@ -8,7 +13,13 @@ import autoTable from 'jspdf-autotable';
 import { api } from '@/config/api';
 import { logError } from '@/utils/logger';
 
-import { TransactionService } from './service';
+import {
+  appendScopedExportParams,
+  extractTransactionsList,
+  type PaginatedTransactions,
+  shouldExportAllTransactions,
+  TransactionService,
+} from './service';
 import type {
   CreateTransactionDto,
   DailyContributionFilters,
@@ -18,105 +29,20 @@ import type {
 } from './types';
 import { Currency, TransactionType } from './types';
 
-// Default conversion rate from FC to USD (1 USD = 2800 FC)
 const DEFAULT_FC_TO_USD_RATE = 2800;
 
-// Helper to determine transaction type
-export const getTransactionType = (category: string): 'INCOME' | 'EXPENSE' => {
-  const IncomeCategories = ['DAILY', 'SPECIAL', 'DONATION', 'OTHER'];
-  return IncomeCategories.includes(category) ? 'INCOME' : 'EXPENSE';
-};
-
-export const fetchTransactions = async (filters: TransactionFilters) => {
-  try {
-    const queryParams = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== '') {
-        queryParams.append(key, value.toString());
-      }
-    });
-
-    const response = await api.get(`/transactions?${queryParams.toString()}`);
-    return response.data.map((transaction: Transaction) => ({
-      ...transaction,
-      type: getTransactionType(transaction.category),
-      currency: transaction.currency as Currency,
-    }));
-  } catch (error) {
-    return [];
-  }
-};
-
-const createTransaction = async (transaction: CreateTransactionDto) => {
-  const { data } = await api.post('/transactions', transaction);
-  return data;
-};
-
-// Custom hook to add a new transaction
-export const useAddTransaction = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: createTransaction,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    },
-  });
-};
-
-// Fetch transactions with filters and pagination
-export const useTransactions = (
-  filters: TransactionFilters,
-  pagination: { page: number; limit: number },
-) => {
-  return useQuery({
-    queryKey: ['transactions', filters, pagination],
-    queryFn: async () => {
-      const queryParams = new URLSearchParams();
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== '') {
-          queryParams.append(key, value.toString());
-        }
-      });
-      queryParams.append('page', pagination.page.toString());
-      queryParams.append('limit', pagination.limit.toString());
-
-      const { data } = await api.get(`/transactions?${queryParams.toString()}`);
-      return data;
-    },
-    staleTime: 1000 * 60,
-  });
-};
-
-// Create transaction mutation
-export const useCreateTransaction = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: TransactionService.createTransaction,
-    onSuccess: () => {
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['transactionStats'] });
-    },
-  });
-};
-
-// Helper function to translate categories to French
 const translateCategoryToFrench = (category: string): string => {
   const translations: Record<string, string> = {
-    // Income categories
     DAILY: 'Quotidien',
     SPECIAL: 'Spécial',
     DONATION: 'Donation',
     OTHER: 'Autre',
-    // Expense categories
     CHARITY: 'Charité',
     MAINTENANCE: 'Maintenance',
     TRANSPORT: 'Transport',
     SPECIAL_ASSISTANCE: 'Assistance Spéciale',
     COMMUNICATION: 'Communication',
     RESTAURATION: 'Restauration',
-    // Subcategories
     ILLNESS: 'Maladie',
     BIRTH: 'Naissance',
     MARRIAGE: 'Mariage',
@@ -129,7 +55,71 @@ const translateCategoryToFrench = (category: string): string => {
   return translations[category] || category;
 };
 
-// Export transactions
+function contributorDisplayName(transaction: Transaction): string {
+  if (transaction.contributor) {
+    const first = transaction.contributor.firstName || '';
+    const last = transaction.contributor.lastName || '';
+    const name = `${last} ${first}`.trim();
+    if (name) return name;
+  }
+  const external = transaction.externalContributorName?.trim();
+  if (external) return external;
+  return 'Anonyme';
+}
+
+function aggregateAmountsByTypeAndCurrency(transactions: Transaction[]) {
+  const totals = {
+    incomeUSD: 0,
+    incomeFC: 0,
+    expenseUSD: 0,
+    expenseFC: 0,
+  };
+
+  for (const t of transactions) {
+    const amount = Number(t.amount) || 0;
+    const isUSD = t.currency === Currency.USD;
+    if (t.type === TransactionType.INCOME) {
+      if (isUSD) totals.incomeUSD += amount;
+      else totals.incomeFC += amount;
+    } else {
+      if (isUSD) totals.expenseUSD += amount;
+      else totals.expenseFC += amount;
+    }
+  }
+
+  return totals;
+}
+
+export const useTransactions = (
+  filters: TransactionFilters,
+): UseQueryResult<PaginatedTransactions> => {
+  const { page: pageFromFilters = 1, limit: limitFromFilters = 10, ...rest } =
+    filters;
+
+  return useQuery({
+    queryKey: ['transactions', filters],
+    queryFn: () =>
+      TransactionService.fetchTransactions(rest, {
+        page: pageFromFilters,
+        limit: limitFromFilters,
+      }),
+    staleTime: 1000 * 60,
+  });
+};
+
+export const useCreateTransaction = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateTransactionDto) =>
+      TransactionService.createTransaction(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactionStats'] });
+    },
+  });
+};
+
 export const useExportTransactions = () => {
   return useMutation({
     mutationFn: async (params: {
@@ -137,41 +127,11 @@ export const useExportTransactions = () => {
       exportAll?: boolean;
       conversionRate?: number;
     }) => {
-      // Use provided conversion rate or default
       const conversionRate = params.conversionRate || DEFAULT_FC_TO_USD_RATE;
+      const shouldExportAll = shouldExportAllTransactions(params.filters);
 
       const queryParams = new URLSearchParams();
-
-      // Determine if we should export all based on filters
-      const shouldExportAll =
-        !params.filters.startDate &&
-        !params.filters.endDate &&
-        !params.filters.type &&
-        !params.filters.category &&
-        !params.filters.search;
-
-      // Apply filters if not exporting all
-      if (!shouldExportAll) {
-        // Handle date filters first
-        if (params.filters.startDate) {
-          queryParams.append('startDate', params.filters.startDate);
-        }
-        if (params.filters.endDate) {
-          queryParams.append('endDate', params.filters.endDate);
-        }
-        // Handle other filters
-        if (params.filters.type) {
-          queryParams.append('type', params.filters.type);
-        }
-        if (params.filters.category) {
-          queryParams.append('category', params.filters.category);
-        }
-        if (params.filters.search) {
-          queryParams.append('search', params.filters.search);
-        }
-      }
-
-      // Add pagination parameters
+      appendScopedExportParams(queryParams, params.filters, shouldExportAll);
       queryParams.append('page', '1');
       queryParams.append('limit', '999999');
 
@@ -179,7 +139,6 @@ export const useExportTransactions = () => {
         `/transactions?${queryParams.toString()}`,
       );
 
-      // Create PDF document with consistent margins
       const doc = new JSPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -199,7 +158,6 @@ export const useExportTransactions = () => {
 
         doc.addImage(base64, 'PNG', 15, 15, 35, 20);
       } catch (error) {
-        // Silently ignore logo loading errors - PDF will still be generated without logo
         console.warn('Failed to add logo to PDF:', error);
       }
 
@@ -226,51 +184,24 @@ export const useExportTransactions = () => {
       doc.setFontSize(10);
       doc.text(frenchDateHeader, margin, 45);
 
-      const transactions = transactionResponse.data.data.map(
-        (transaction: Transaction) => {
-          let contributorName = 'Anonyme';
-          if (transaction.contributor) {
-            const firstName = transaction.contributor.firstName || '';
-            const lastName = transaction.contributor.lastName || '';
-            contributorName = `${lastName} ${firstName}`.trim() || 'Anonyme';
-          } else if (transaction.externalContributorName) {
-            contributorName =
-              transaction.externalContributorName.trim() || 'Anonyme';
-          }
+      const rawList = extractTransactionsList(transactionResponse.data);
+      const totals = aggregateAmountsByTypeAndCurrency(rawList);
 
-          return [
-            contributorName,
-            transaction.type === TransactionType.INCOME ? 'Revenu' : 'Dépense',
-            translateCategoryToFrench(transaction.category),
-            transaction.subcategory
-              ? translateCategoryToFrench(transaction.subcategory)
-              : '-',
-            transaction.amount.toFixed(2),
-            transaction.currency === Currency.USD ? 'USD' : 'FC',
-          ];
-        },
-      );
+      const tableRows = rawList.map((transaction) => [
+        contributorDisplayName(transaction),
+        transaction.type === TransactionType.INCOME ? 'Revenu' : 'Dépense',
+        translateCategoryToFrench(transaction.category),
+        transaction.subcategory
+          ? translateCategoryToFrench(transaction.subcategory)
+          : '-',
+        transaction.amount.toFixed(2),
+        transaction.currency === Currency.USD ? 'USD' : 'FC',
+      ]);
 
-      const totalIncomeUSD = transactions
-        .filter((t: string[]) => t[1] === 'Revenu' && t[5] === 'USD')
-        .reduce((sum: number, t: string[]) => sum + parseFloat(t[4] || '0'), 0);
-      const totalIncomeFC = transactions
-        .filter((t: string[]) => t[1] === 'Revenu' && t[5] === 'FC')
-        .reduce((sum: number, t: string[]) => sum + parseFloat(t[4] || '0'), 0);
-      const totalExpenseUSD = transactions
-        .filter((t: string[]) => t[1] === 'Dépense' && t[5] === 'USD')
-        .reduce((sum: number, t: string[]) => sum + parseFloat(t[4] || '0'), 0);
-      const totalExpenseFC = transactions
-        .filter((t: string[]) => t[1] === 'Dépense' && t[5] === 'FC')
-        .reduce((sum: number, t: string[]) => sum + parseFloat(t[4] || '0'), 0);
-
-      // Convert FC to USD for totals using the provided conversion rate
-      const totalIncomeFCInUSD = totalIncomeFC / conversionRate;
-      const totalExpenseFCInUSD = totalExpenseFC / conversionRate;
-
-      // Calculate total income and expense in USD
-      const totalIncomeInUSD = totalIncomeUSD + totalIncomeFCInUSD;
-      const totalExpenseInUSD = totalExpenseUSD + totalExpenseFCInUSD;
+      const totalIncomeFCInUSD = totals.incomeFC / conversionRate;
+      const totalExpenseFCInUSD = totals.expenseFC / conversionRate;
+      const totalIncomeInUSD = totals.incomeUSD + totalIncomeFCInUSD;
+      const totalExpenseInUSD = totals.expenseUSD + totalExpenseFCInUSD;
 
       autoTable(doc, {
         startY: 48,
@@ -284,20 +215,20 @@ export const useExportTransactions = () => {
             'Devise',
           ],
         ],
-        body: transactions,
+        body: tableRows,
         foot: [
-          ['', '', '', 'REVENU TOTAL', `${totalIncomeUSD.toFixed(2)}`, '$'],
-          ['', '', '', '', `${totalIncomeFC.toFixed(2)}`, 'FC'],
+          ['', '', '', 'REVENU TOTAL', `${totals.incomeUSD.toFixed(2)}`, '$'],
+          ['', '', '', '', `${totals.incomeFC.toFixed(2)}`, 'FC'],
           ['', '', '', '', `${totalIncomeFCInUSD.toFixed(2)}`, '$'],
-          ['', '', '', 'DÉPENSE TOTALE', `${totalExpenseUSD.toFixed(2)}`, '$'],
-          ['', '', '', '', `${totalExpenseFC.toFixed(2)}`, 'FC'],
+          ['', '', '', 'DÉPENSE TOTALE', `${totals.expenseUSD.toFixed(2)}`, '$'],
+          ['', '', '', '', `${totals.expenseFC.toFixed(2)}`, 'FC'],
           ['', '', '', '', `${totalExpenseFCInUSD.toFixed(2)}`, '$'],
           [
             '',
             '',
             '',
             'SOLDE',
-            `${(totalIncomeUSD - totalExpenseUSD).toFixed(2)}`,
+            `${(totals.incomeUSD - totals.expenseUSD).toFixed(2)}`,
             '$',
           ],
           [
@@ -305,7 +236,7 @@ export const useExportTransactions = () => {
             '',
             '',
             '',
-            `${(totalIncomeFC - totalExpenseFC).toFixed(2)}`,
+            `${(totals.incomeFC - totals.expenseFC).toFixed(2)}`,
             'FC',
           ],
           [
@@ -361,34 +292,27 @@ export const useExportTransactions = () => {
         didParseCell: (hookData) => {
           const newStyles = { ...hookData.cell.styles };
           if (hookData.section === 'head') {
-            // Right align the amount column header
             if (hookData.column.index === 4) {
               newStyles.halign = 'right';
             }
           } else if (hookData.section === 'foot') {
-            // Right align amount column (index 4) for all footer rows except the last row
             if (hookData.column.index === 4 && hookData.row.index < 9) {
               newStyles.halign = 'right';
             } else if (hookData.column.index === 5 && hookData.row.index < 9) {
-              // Left align currency column (index 5) for all footer rows except the last row
               newStyles.halign = 'left';
             } else if (hookData.row.index === 9) {
-              // Last row (conversion rate) - left align
               newStyles.halign = 'left';
             } else {
               newStyles.halign = 'left';
             }
-            // Apply alternate row color for footer
             if (hookData.row.index % 2 === 1) {
               newStyles.fillColor = [91, 227, 248];
             }
-            // Make SOLDE row bold (rows 6, 7, and 8)
             if (hookData.row.index >= 6 && hookData.row.index <= 8) {
               newStyles.fontStyle = 'bold';
             }
           } else {
             newStyles.textColor = [0, 0, 0];
-            // Only set left alignment if it's not the amount column
             if (hookData.column.index !== 4) {
               newStyles.halign = 'left';
             }
@@ -408,67 +332,39 @@ export const useExportTransactions = () => {
   });
 };
 
-// Get daily contributions for a specific user
 export function useDailyContributions(
   filters: DailyContributionFilters,
   pagination: { page: number; limit: number },
 ) {
-  const query = useQuery({
+  return useQuery({
     queryKey: ['daily-contributions', filters, pagination],
     queryFn: () =>
       TransactionService.fetchDailyContributions(filters, pagination),
     staleTime: 1000 * 60,
   });
-  return query;
 }
 
-// Get transaction statistics
-export const useTransactionStats = (filters?: TransactionFilters) => {
-  const queryClient = useQueryClient();
-
+export const useTransactionStats = (
+  filters?: TransactionFilters,
+): UseQueryResult<TransactionStats> => {
   return useQuery({
     queryKey: ['transactionStats', filters],
-    queryFn: async () => {
-      const { data: responseData } = await api.get('/transactions/stats', {
-        params: filters,
-      });
-
-      const stats: TransactionStats = {
-        usd: {
-          totalIncome: Number(responseData.totals?.income?.usd || 0),
-          totalExpense: Number(responseData.totals?.expense?.usd || 0),
-          netRevenue: Number(responseData.totals?.solde?.usd || 0),
-        },
-        fc: {
-          totalIncome: Number(responseData.totals?.income?.fc || 0),
-          totalExpense: Number(responseData.totals?.expense?.fc || 0),
-          netRevenue: Number(responseData.totals?.solde?.fc || 0),
-        },
-        dailyTotalUSD: Number(responseData.dailyTotalUSD || 0),
-        dailyTotalFC: Number(responseData.dailyTotalFC || 0),
-      };
-
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      return stats;
-    },
+    queryFn: () => TransactionService.fetchStats(filters),
     staleTime: 1000 * 60 * 5,
     refetchInterval: 1000 * 60 * 5,
   });
 };
 
-// Get total balance without any filters (complete balance)
 export const useTotalBalance = () => {
   return useQuery({
     queryKey: ['totalBalance'],
     queryFn: async () => {
       try {
-        // Use the backend stats endpoint with no filters to get the true total balance
-        const { data: responseData } = await api.get('/transactions/stats');
-        const totalBalance = {
-          usd: Number(responseData.totals?.solde?.usd || 0),
-          fc: Number(responseData.totals?.solde?.fc || 0),
+        const stats = await TransactionService.fetchStats();
+        return {
+          usd: stats.usd.netRevenue,
+          fc: stats.fc.netRevenue,
         };
-        return totalBalance;
       } catch (error) {
         logError(error instanceof Error ? error.message : 'Unknown error');
         throw error;
@@ -479,7 +375,6 @@ export const useTotalBalance = () => {
   });
 };
 
-// Export transactions as PDF
 export const useExportTransactionsPDF = () => {
   return useMutation({
     mutationFn: async (params: {
@@ -487,15 +382,8 @@ export const useExportTransactionsPDF = () => {
       exportAll?: boolean;
       conversionRate?: number;
     }) => {
-      // Determine if we should export all based on filters
-      const shouldExportAll =
-        !params.filters.startDate &&
-        !params.filters.endDate &&
-        !params.filters.type &&
-        !params.filters.category &&
-        !params.filters.search;
+      const shouldExportAll = shouldExportAllTransactions(params.filters);
 
-      // Skip date validation if exporting all transactions
       if (
         !shouldExportAll &&
         !params.filters.startDate &&
@@ -505,33 +393,10 @@ export const useExportTransactionsPDF = () => {
       }
 
       const queryParams = new URLSearchParams();
-
-      // Apply filters if not exporting all
-      if (!shouldExportAll) {
-        // Handle date filters first
-        if (params.filters.startDate) {
-          queryParams.append('startDate', params.filters.startDate);
-        }
-        if (params.filters.endDate) {
-          queryParams.append('endDate', params.filters.endDate);
-        }
-        // Handle other filters
-        if (params.filters.type) {
-          queryParams.append('type', params.filters.type);
-        }
-        if (params.filters.category) {
-          queryParams.append('category', params.filters.category);
-        }
-        if (params.filters.search) {
-          queryParams.append('search', params.filters.search);
-        }
-      }
-
-      // Add pagination parameters to get all records
+      appendScopedExportParams(queryParams, params.filters, shouldExportAll);
       queryParams.append('page', '1');
-      queryParams.append('limit', '999999'); // Use a large number to get all records
+      queryParams.append('limit', '999999');
 
-      // Fetch the report data
       const { data: reportData } = await api.get('/transactions', {
         params: queryParams,
         responseType: 'blob',
@@ -540,13 +405,11 @@ export const useExportTransactionsPDF = () => {
         },
       });
 
-      // Create and download the PDF file
       const blob = new Blob([reportData], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
 
-      // Generate filename based on date range or "all" if exporting everything
       const getDateRangeSuffix = () => {
         if (shouldExportAll) {
           return 'all';

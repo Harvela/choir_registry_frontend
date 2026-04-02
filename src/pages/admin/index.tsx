@@ -204,11 +204,17 @@ const AdminDashboard: React.FC = () => {
       'Décembre',
     ];
 
+    // For current year: only show months that have occurred
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth();
+    const endMonth =
+      selectedYear === currentYear ? currentMonth : 11; // 11 = December
+
     setAttendanceStats({
-      present: monthlyStats.map((m) => m.present),
-      late: monthlyStats.map((m) => m.late),
-      absent: monthlyStats.map((m) => m.absent),
-      dates: monthNames,
+      present: monthlyStats.slice(0, endMonth + 1).map((m) => m.present),
+      late: monthlyStats.slice(0, endMonth + 1).map((m) => m.late),
+      absent: monthlyStats.slice(0, endMonth + 1).map((m) => m.absent),
+      dates: monthNames.slice(0, endMonth + 1),
       totalPresent: overall.present,
       totalLate: overall.late,
       totalAbsent: overall.absent,

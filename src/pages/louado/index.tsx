@@ -54,7 +54,7 @@ const LouadoPage: React.FC = () => {
 
   return (
     <Layout>
-      <div className="mx-auto w-full max-w-6xl px-4 py-8 md:py-10">
+      <div className="container mx-auto px-4 py-8">
         <LouadoShiftManager />
       </div>
     </Layout>

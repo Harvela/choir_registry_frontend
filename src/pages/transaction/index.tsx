@@ -108,7 +108,11 @@ const Transactions = () => {
   });
 
   // Queries and Mutations
-  const { data, isLoading, refetch } = useTransactions(filters, pagination) as {
+  const { data, isLoading, refetch } = useTransactions({
+    ...filters,
+    page: pagination.page,
+    limit: pagination.limit,
+  }) as {
     data?: TransactionResponse;
     isLoading: boolean;
     refetch: () => void;

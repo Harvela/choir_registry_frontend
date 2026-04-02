@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { FaFilter } from 'react-icons/fa';
+import { FaDownload, FaPlus } from 'react-icons/fa';
 
 import Dialog from '@/components/dialog';
 import ConfirmationDialog from '@/components/dialog/ConfirmationDialog';
@@ -275,36 +275,55 @@ export const LouadoShiftManager: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="flex items-center gap-2 text-emerald-700">
-            <FaFilter />
-            <span className="text-sm font-semibold uppercase tracking-widest">
-              Filtrer la période
-            </span>
-          </div>
-          <div className="flex flex-col gap-3 md:flex-row md:items-center">
-            <label className="flex flex-col text-xs font-medium text-emerald-800">
-              Date de début
-              <input
-                type="date"
-                name="startDate"
-                value={filters.startDate || ''}
-                onChange={handleFilterInput}
-                className="mt-1 rounded-md border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              />
-            </label>
-            <label className="flex flex-col text-xs font-medium text-emerald-800">
-              Date de fin
-              <input
-                type="date"
-                name="endDate"
-                value={filters.endDate || ''}
-                onChange={handleFilterInput}
-                className="mt-1 rounded-md border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400"
-              />
-            </label>
-          </div>
+      <h1 className="text-2xl font-extrabold uppercase text-emerald-800">
+        CALENDRIER LOUADO
+      </h1>
+
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-row gap-2 items-center">
+          <label className="flex flex-col text-xs font-medium text-emerald-800">
+            Date de début
+            <input
+              type="date"
+              name="startDate"
+              value={filters.startDate || ''}
+              onChange={handleFilterInput}
+              className="mt-1 rounded-md border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            />
+          </label>
+          <label className="flex flex-col text-xs font-medium text-emerald-800">
+            Date de fin
+            <input
+              type="date"
+              name="endDate"
+              value={filters.endDate || ''}
+              onChange={handleFilterInput}
+              className="mt-1 rounded-md border border-emerald-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            />
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-800"
+          >
+            <FaDownload className="hidden sm:inline" />
+            Export PDF
+          </button>
+          {canManage && (
+            <button
+              onClick={openCreateForm}
+              disabled={manageActionsDisabled}
+              className={`flex items-center gap-2 rounded-md px-4 py-2 text-sm font-semibold transition-colors ${
+                manageActionsDisabled
+                  ? 'cursor-not-allowed bg-emerald-300 text-emerald-800 opacity-70'
+                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
+              }`}
+            >
+              <FaPlus />
+              Nouveau shift
+            </button>
+          )}
         </div>
       </div>
 
@@ -314,10 +333,9 @@ export const LouadoShiftManager: React.FC = () => {
         error={error}
         canManage={canManage}
         disableManageActions={manageActionsDisabled}
-        onCreate={canManage ? openCreateForm : undefined}
         onEdit={canManage ? openEditForm : undefined}
         onDelete={canManage ? setDeletingShift : undefined}
-        onExport={handleExport}
+        hideHeader
       />
 
       {isFormOpen && (

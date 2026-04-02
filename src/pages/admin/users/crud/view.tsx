@@ -30,6 +30,7 @@ const ViewUser: React.FC<ViewUserProps> = ({ user, transactions, onClose }) => {
   const [isFingerprintRegistered, setIsFingerprintRegistered] = useState(false);
 
   useEffect(() => {
+    // API responses no longer include fingerprint payload; only truthy legacy/local values mark as registered.
     if (user?.fingerprintData) {
       setIsFingerprintRegistered(true);
     }

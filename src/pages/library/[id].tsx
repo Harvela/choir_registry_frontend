@@ -183,9 +183,9 @@ const SongDetailPage = () => {
       icon: <FaUsers className="ml-2 text-xl text-orange-400" />,
     },
     {
-      label: 'En Répétition',
-      value: stats?.inRehearsal || 0,
-      sub: "En cours d'apprentissage",
+      label: 'Archivés',
+      value: stats?.archived || 0,
+      sub: 'Chants archivés',
       icon: <FaClock className="ml-2 text-xl text-orange-400" />,
     },
     {
