@@ -138,6 +138,8 @@ const JustificationPopup = ({
 };
 
 const AttendancePage: React.FC = () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const usersPerPage = 10;
   const {
     markAttendance,
     filters,
@@ -153,8 +155,8 @@ const AttendancePage: React.FC = () => {
     fetchUsersAndAttendance,
   } = useAttendance({ auto: false });
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 10;
+  
+  
   const [isExportingAbsences, setIsExportingAbsences] = useState(false);
 
   const getTodayDate = (): string => {

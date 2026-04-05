@@ -1,1 +1,1 @@
-export { useTransactionStats, useTransactions } from './logics';
+export { useTransactions, useTransactionStats } from './logics';

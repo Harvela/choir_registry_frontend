@@ -1,9 +1,5 @@
 import React, { useMemo } from 'react';
-import {
-  FaEdit,
-  FaExclamationTriangle,
-  FaTrash,
-} from 'react-icons/fa';
+import { FaEdit, FaExclamationTriangle, FaTrash } from 'react-icons/fa';
 
 import type { LouadoShift } from '@/lib/louado/types';
 
@@ -58,7 +54,6 @@ export const LouadoScheduleTable: React.FC<LouadoScheduleTableProps> = ({
 
   return (
     <div className="space-y-6">
-
       {error && (
         <div className="flex items-center gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           <FaExclamationTriangle className="text-lg" />

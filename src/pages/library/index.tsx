@@ -69,12 +69,12 @@ const LibraryPage = () => {
     return {
       totalSongs: list.length,
       activeRepertoire: list.filter(
-        (s) => (s.status || '').toLowerCase() === SongStatus.ACTIVE.toLowerCase(),
+        (s) =>
+          (s.status || '').toLowerCase() === SongStatus.ACTIVE.toLowerCase(),
       ).length,
       archived: list.filter(
         (s) =>
-          (s.status || '').toLowerCase() ===
-          SongStatus.ARCHIVED.toLowerCase(),
+          (s.status || '').toLowerCase() === SongStatus.ARCHIVED.toLowerCase(),
       ).length,
       newAdditions: list.filter((s) => {
         if (!s.createdAt) return false;
@@ -114,7 +114,9 @@ const LibraryPage = () => {
 
     // Sort alphabetically by title
     result = [...result].sort((a, b) =>
-      (a.title || '').localeCompare(b.title || '', undefined, { sensitivity: 'base' }),
+      (a.title || '').localeCompare(b.title || '', undefined, {
+        sensitivity: 'base',
+      }),
     );
 
     return result;

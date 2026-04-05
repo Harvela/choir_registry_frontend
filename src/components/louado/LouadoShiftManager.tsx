@@ -280,7 +280,7 @@ export const LouadoShiftManager: React.FC = () => {
       </h1>
 
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="flex flex-row gap-2 items-center">
+        <div className="flex flex-row items-center gap-2">
           <label className="flex flex-col text-xs font-medium text-emerald-800">
             Date de début
             <input

@@ -1,9 +1,9 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import {
-  type UseQueryResult,
   useMutation,
   useQuery,
   useQueryClient,
+  type UseQueryResult,
 } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale/fr';
@@ -81,10 +81,8 @@ function aggregateAmountsByTypeAndCurrency(transactions: Transaction[]) {
     if (t.type === TransactionType.INCOME) {
       if (isUSD) totals.incomeUSD += amount;
       else totals.incomeFC += amount;
-    } else {
-      if (isUSD) totals.expenseUSD += amount;
-      else totals.expenseFC += amount;
-    }
+    } else if (isUSD) totals.expenseUSD += amount;
+    else totals.expenseFC += amount;
   }
 
   return totals;
@@ -93,8 +91,11 @@ function aggregateAmountsByTypeAndCurrency(transactions: Transaction[]) {
 export const useTransactions = (
   filters: TransactionFilters,
 ): UseQueryResult<PaginatedTransactions> => {
-  const { page: pageFromFilters = 1, limit: limitFromFilters = 10, ...rest } =
-    filters;
+  const {
+    page: pageFromFilters = 1,
+    limit: limitFromFilters = 10,
+    ...rest
+  } = filters;
 
   return useQuery({
     queryKey: ['transactions', filters],
@@ -220,7 +221,14 @@ export const useExportTransactions = () => {
           ['', '', '', 'REVENU TOTAL', `${totals.incomeUSD.toFixed(2)}`, '$'],
           ['', '', '', '', `${totals.incomeFC.toFixed(2)}`, 'FC'],
           ['', '', '', '', `${totalIncomeFCInUSD.toFixed(2)}`, '$'],
-          ['', '', '', 'DÉPENSE TOTALE', `${totals.expenseUSD.toFixed(2)}`, '$'],
+          [
+            '',
+            '',
+            '',
+            'DÉPENSE TOTALE',
+            `${totals.expenseUSD.toFixed(2)}`,
+            '$',
+          ],
           ['', '', '', '', `${totals.expenseFC.toFixed(2)}`, 'FC'],
           ['', '', '', '', `${totalExpenseFCInUSD.toFixed(2)}`, '$'],
           [

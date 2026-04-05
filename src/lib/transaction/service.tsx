@@ -158,11 +158,7 @@ export const TransactionService = {
     );
 
     const { data } = await api.get('/transactions', { params });
-    return coercePaginatedTransactions(
-      data,
-      pagination.page,
-      pagination.limit,
-    );
+    return coercePaginatedTransactions(data, pagination.page, pagination.limit);
   },
 
   createTransaction: async (

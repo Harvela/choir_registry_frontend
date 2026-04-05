@@ -207,8 +207,7 @@ const AdminDashboard: React.FC = () => {
     // For current year: only show months that have occurred
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth();
-    const endMonth =
-      selectedYear === currentYear ? currentMonth : 11; // 11 = December
+    const endMonth = selectedYear === currentYear ? currentMonth : 11; // 11 = December
 
     setAttendanceStats({
       present: monthlyStats.slice(0, endMonth + 1).map((m) => m.present),
