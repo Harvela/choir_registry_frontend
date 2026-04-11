@@ -154,9 +154,6 @@ const AttendancePage: React.FC = () => {
     setAttendance,
     fetchUsersAndAttendance,
   } = useAttendance({ auto: false });
-
-  
-  
   const [isExportingAbsences, setIsExportingAbsences] = useState(false);
 
   const getTodayDate = (): string => {
