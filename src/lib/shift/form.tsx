@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import type { User } from '@/lib/user/type';
 import { UserCategory } from '@/lib/user/type';
@@ -7,6 +7,17 @@ import { useAuth } from '@/providers/AuthProvider';
 
 import type { CreateLeadershipShiftDto, LeadershipShift } from './logic';
 import { ShiftStatus, useCreateShift, useUpdateShift } from './logic';
+
+const emptyForm: CreateLeadershipShiftDto = {
+  name: '',
+  leaderId: 0,
+  startDate: '',
+  endDate: '',
+  status: ShiftStatus.UPCOMING,
+  eventsScheduled: 0,
+  eventsCompleted: 0,
+  notes: '',
+};
 
 interface ShiftFormProps {
   shift?: LeadershipShift | null;
@@ -36,14 +47,7 @@ export const ShiftForm: React.FC<ShiftFormProps> = ({
   const isEditing = !!shift;
 
   const [formData, setFormData] = useState<CreateLeadershipShiftDto>({
-    name: '',
-    leaderId: 0,
-    startDate: '',
-    endDate: '',
-    status: ShiftStatus.UPCOMING,
-    eventsScheduled: 0,
-    eventsCompleted: 0,
-    notes: '',
+    ...emptyForm,
   });
 
   const [leaders, setLeaders] = useState<User[]>([]);
@@ -51,19 +55,21 @@ export const ShiftForm: React.FC<ShiftFormProps> = ({
     Record<string, string>
   >({});
 
-  // Initialize form data when editing
+  // Initialize form when editing; reset when opening create (shift cleared)
   useEffect(() => {
+    const formatDateForInput = (dateString: string) => {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toISOString().split('T')[0];
+    };
+
     if (shift) {
-      // Format dates for HTML date inputs (YYYY-MM-DD format)
-      const formatDateForInput = (dateString: string) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toISOString().split('T')[0];
-      };
+      const rawLeaderId = shift.leaderId ?? shift.leader?.id;
+      const leaderId = Number(rawLeaderId) || 0;
 
       setFormData({
         name: shift.name || '',
-        leaderId: shift.leader?.id || 0,
+        leaderId,
         startDate: formatDateForInput(shift?.startDate ?? '') || '',
         endDate: formatDateForInput(shift?.endDate ?? '') || '',
         status: shift.status ?? ShiftStatus.UPCOMING,
@@ -71,8 +77,35 @@ export const ShiftForm: React.FC<ShiftFormProps> = ({
         eventsCompleted: shift.eventsCompleted || 0,
         notes: shift.notes || '',
       });
+    } else {
+      setFormData({ ...emptyForm });
     }
   }, [shift]);
+
+  const leaderOptions = useMemo(() => {
+    const base = leaders.map((l) => ({
+      id: Number(l.id) || 0,
+      firstName: l.firstName ?? '',
+      lastName: l.lastName ?? '',
+    }));
+
+    if (!shift) return base;
+
+    const resolvedId = Number(shift.leaderId ?? shift.leader?.id) || 0;
+    if (!resolvedId || base.some((l) => l.id === resolvedId)) {
+      return base;
+    }
+
+    const leader = shift.leader;
+    return [
+      ...base,
+      {
+        id: resolvedId,
+        firstName: leader?.firstName ?? '',
+        lastName: leader?.lastName ?? '',
+      },
+    ];
+  }, [leaders, shift]);
 
   // Fetch leaders (users with LEAD category)
   useEffect(() => {
@@ -252,16 +285,16 @@ export const ShiftForm: React.FC<ShiftFormProps> = ({
           <select
             id="leaderId"
             name="leaderId"
-            value={formData.leaderId}
+            value={Number(formData.leaderId) || 0}
             onChange={handleInputChange}
             className={`w-full rounded-md border px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
               validationErrors.leaderId ? 'border-red-300' : 'border-gray-300'
             }`}
           >
             <option value={0}>Selectionner conducteur</option>
-            {leaders.map((leader) => (
-              <option key={leader.id} value={leader.id}>
-                {leader.lastName} {leader.firstName}
+            {leaderOptions.map((leader) => (
+              <option key={leader.id} value={Number(leader.id) || 0}>
+                {`${leader.lastName} ${leader.firstName}`.trim()}
               </option>
             ))}
           </select>

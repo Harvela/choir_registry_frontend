@@ -176,7 +176,7 @@ export const LouadoShiftForm: React.FC<LouadoShiftFormProps> = ({
             </option>
             {availableMembers.map((member) => (
               <option key={member.id} value={member.id}>
-                {`${member.lastName || ''}${member.firstName || ''}`.trim()}
+                {`${member.lastName || ''} ${member.firstName || ''}`.trim()}
               </option>
             ))}
           </select>
@@ -210,7 +210,7 @@ export const LouadoShiftForm: React.FC<LouadoShiftFormProps> = ({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSubmitting
             ? 'Enregistrement...'
