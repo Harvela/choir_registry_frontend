@@ -153,6 +153,18 @@ export const exportToPDF = async (
     }),
     'Total',
   ];
+  const formatDailyAmountCell = (amountFC: number, amountUSD: number) => {
+    if (amountFC > 0 && amountUSD > 0) {
+      return `${amountFC}, ${amountUSD.toFixed(0)}`;
+    }
+    if (amountFC > 0) {
+      return `${amountFC}`;
+    }
+    if (amountUSD > 0) {
+      return `${amountUSD.toFixed(0)}`;
+    }
+    return '0';
+  };
 
   // Table body
   const body = data.map((item) => {
@@ -166,16 +178,7 @@ export const exportToPDF = async (
       const amountUSD = contribs
         .filter((c: any) => c.amountUSD)
         .reduce((sum: number, c: any) => sum + (c.amountUSD || 0), 0);
-      if (amountFC > 0 && amountUSD > 0) {
-        return `${amountFC} FC, ${amountUSD.toFixed(0)} $`;
-      }
-      if (amountFC > 0) {
-        return `${amountFC} FC`;
-      }
-      if (amountUSD > 0) {
-        return `${amountUSD.toFixed(0)} $`;
-      }
-      return '0';
+      return formatDailyAmountCell(amountFC, amountUSD);
     });
     // Total cell: FC and USD logic
     const totalFC = item.totalAmountFC || 0;
@@ -229,16 +232,7 @@ export const exportToPDF = async (
       });
       totalsFC += sumFC;
       totalsUSD += sumUSD;
-      if (sumFC > 0 && sumUSD > 0) {
-        return `${sumFC} FC, ${sumUSD.toFixed(0)} $`;
-      }
-      if (sumFC > 0) {
-        return `${sumFC} FC`;
-      }
-      if (sumUSD > 0) {
-        return `${sumUSD.toFixed(0)} $`;
-      }
-      return '0';
+      return formatDailyAmountCell(sumFC, sumUSD);
     }),
     grandTotalCell,
   ];
@@ -337,8 +331,13 @@ export const exportToPDF = async (
         cell.styles.halign = 'right';
       }
 
-      if (row.index > 0 && column.index > 2) {
-        cell.styles.fontSize = 8;
+      if (Array.isArray(row.raw)) {
+        const lastColumnIndex = row.raw.length - 1;
+        const isDailyContributionColumn =
+          column.index > 0 && column.index < lastColumnIndex;
+        if (isDailyContributionColumn) {
+          cell.styles.fontSize = 7;
+        }
       }
     },
     didDrawCell: (cellData) => {

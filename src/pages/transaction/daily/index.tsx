@@ -17,6 +17,8 @@ import type { User } from '@/lib/user/type';
 import { FetchUsers } from '@/lib/user/user_actions';
 import { logger } from '@/utils/logger';
 
+const normalizeDateKey = (value: string): string => value.split('T')[0] ?? '';
+
 const DailyContributions = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [conversionRate, setConversionRate] = useState<number>(2800);
@@ -76,13 +78,20 @@ const DailyContributions = () => {
         (contributionsData as any)?.contributors ||
         (contributionsData as any)?.data?.contributors ||
         [];
+      const exportVisibleDates = dates.filter((date: string) =>
+        contributors.some((contributor: any) =>
+          contributor?.contributions?.some(
+            (contribution: any) => normalizeDateKey(contribution.date) === date,
+          ),
+        ),
+      );
       const summaries = (usersData?.data || []).map((user) => {
         const c = contributors.find(
           (contributor: any) => contributor.userId === user.id,
         );
-        const dailyContributions = dates.map((date: any) => {
+        const dailyContributions = exportVisibleDates.map((date: string) => {
           const contribution = c?.contributions.find(
-            (con: any) => con.date === date,
+            (con: any) => normalizeDateKey(con.date) === date,
           );
           return {
             date,
@@ -135,6 +144,13 @@ const DailyContributions = () => {
     (contributionsData as any)?.contributors ||
     (contributionsData as any)?.data?.contributors ||
     [];
+  const visibleDates = dates.filter((date: string) =>
+    contributors.some((contributor: any) =>
+      contributor?.contributions?.some(
+        (contribution: any) => normalizeDateKey(contribution.date) === date,
+      ),
+    ),
+  );
   const users = usersData?.data || [];
 
   // Calculate total amounts correctly by summing individual contributions
@@ -341,7 +357,7 @@ const DailyContributions = () => {
                       <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
                         Membre
                       </th>
-                      {dates.map((date: string) => (
+                      {visibleDates.map((date: string) => (
                         <th
                           key={date}
                           className="p-4 text-center text-xs font-semibold uppercase tracking-wider text-gray-600"
@@ -386,10 +402,10 @@ const DailyContributions = () => {
                               </div>
                             </div>
                           </td>
-                          {dates.map((date: string) => {
+                          {visibleDates.map((date: string) => {
                             const contribution =
                               contributor?.contributions.find(
-                                (c: any) => c.date === date,
+                                (c: any) => normalizeDateKey(c.date) === date,
                               );
                             return (
                               <td
@@ -586,10 +602,10 @@ const DailyContributions = () => {
                           Contributions par jour
                         </h4>
                         <div className="space-y-3">
-                          {dates.map((date: string) => {
+                          {visibleDates.map((date: string) => {
                             const contribution =
                               contributor?.contributions.find(
-                                (c: any) => c.date === date,
+                                (c: any) => normalizeDateKey(c.date) === date,
                               );
                             return (
                               <div
