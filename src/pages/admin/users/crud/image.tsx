@@ -21,6 +21,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
     setIsUploading(true);
 
+    console.log('API_URL', API_URL);
+
     try {
       const response = await fetch(`${API_URL}/upload/image`, {
         method: 'POST',

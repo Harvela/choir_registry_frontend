@@ -18,6 +18,10 @@ export interface Song {
   lastPerformance?: string;
   added_by?: any;
   addedById?: string;
+  audioUrl?: string | null;
+  duration?: string | null;
+  departmentId?: number | null;
+  albumId?: number | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -42,6 +46,10 @@ export interface CreateSongDto {
   status: SongStatus;
   lyrics?: string;
   pdfFile?: string;
+  audioUrl?: string;
+  duration?: string;
+  departmentId?: number;
+  albumId?: number;
 }
 
 export interface UpdateSongDto {
@@ -52,6 +60,10 @@ export interface UpdateSongDto {
   status?: SongStatus;
   lyrics?: string;
   pdfFile?: string;
+  audioUrl?: string | null;
+  duration?: string | null;
+  departmentId?: number | null;
+  albumId?: number | null;
 }
 
 export interface SongFilter {

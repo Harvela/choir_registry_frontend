@@ -48,8 +48,9 @@ const Input: React.FC<Props> = (props: Props) => {
         placeholder={placeholder}
         max={max}
         min={min}
-        defaultValue={defaultValue || ''}
-        value={value}
+        {...(value !== undefined
+          ? { value }
+          : { defaultValue: defaultValue ?? '' })}
         onChange={handleChange}
         onBlur={onBlur}
         required={required}

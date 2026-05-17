@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+
+import { api } from '@/config/api';
+import { DepartmentService } from '@/lib/departments/service';
 
 import type { CreateSongDto, Song, UpdateSongDto } from './logic';
 import {
@@ -34,6 +37,11 @@ export default function SongForm({
   const isLoading = createLoading || updateLoading;
   const error = createError || updateError;
 
+  const [departments, setDepartments] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const [albums, setAlbums] = useState<{ id: number; label: string }[]>([]);
+
   const [form, setForm] = useState<CreateSongDto>({
     title: song?.title || '',
     composer: song?.composer || '',
@@ -41,7 +49,25 @@ export default function SongForm({
     difficulty: song?.difficulty || SongDifficulty.INTERMEDIATE,
     status: song?.status || SongStatus.ACTIVE,
     lyrics: song?.lyrics || '',
+    audioUrl: song?.audioUrl ?? '',
+    duration: song?.duration ?? '',
+    departmentId: song?.departmentId ?? undefined,
+    albumId: song?.albumId ?? undefined,
   });
+
+  useEffect(() => {
+    DepartmentService.listDepartments()
+      .then((rows) =>
+        setDepartments(rows.map((d) => ({ id: d.id, name: d.name }))),
+      )
+      .catch(() => {});
+    api
+      .get<Array<{ id: number; label: string }>>(
+        '/content/linked-options/albums',
+      )
+      .then((res) => setAlbums(Array.isArray(res.data) ? res.data : []))
+      .catch(() => {});
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -63,6 +89,10 @@ export default function SongForm({
           difficulty: form.difficulty,
           status: form.status,
           lyrics: form.lyrics?.trim() || '',
+          audioUrl: form.audioUrl?.trim() || null,
+          duration: form.duration?.trim() || null,
+          departmentId: form.departmentId ?? null,
+          albumId: form.albumId ?? null,
         };
 
         // Ensure all required fields are present
@@ -77,13 +107,17 @@ export default function SongForm({
           if (onClose) onClose();
         }
       } else {
-        const createData = {
+        const createData: CreateSongDto = {
           title: form.title.trim(),
           composer: form.composer.trim(),
           genre: form.genre.trim(),
           difficulty: form.difficulty,
           status: form.status,
           lyrics: form.lyrics?.trim() || '',
+          audioUrl: form.audioUrl?.trim() || undefined,
+          duration: form.duration?.trim() || undefined,
+          departmentId: form.departmentId,
+          albumId: form.albumId,
         };
 
         // Ensure all required fields are present
@@ -101,6 +135,10 @@ export default function SongForm({
             difficulty: SongDifficulty.INTERMEDIATE,
             status: SongStatus.ACTIVE,
             lyrics: '',
+            audioUrl: '',
+            duration: '',
+            departmentId: undefined,
+            albumId: undefined,
           });
           if (onSuccess) onSuccess();
           if (onClose) onClose();
@@ -174,6 +212,74 @@ export default function SongForm({
             {difficultyOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold">
+            URL audio (site public)
+          </label>
+          <input
+            name="audioUrl"
+            value={form.audioUrl ?? ''}
+            onChange={handleChange}
+            className="w-full rounded border border-gray-400 px-3 py-2 text-base"
+            placeholder="https://…"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold">Durée</label>
+          <input
+            name="duration"
+            value={form.duration ?? ''}
+            onChange={handleChange}
+            className="w-full rounded border border-gray-400 px-3 py-2 text-base"
+            placeholder="4:32"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold">
+            Département
+          </label>
+          <select
+            name="departmentId"
+            value={form.departmentId ?? ''}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                departmentId: e.target.value
+                  ? Number(e.target.value)
+                  : undefined,
+              })
+            }
+            className="w-full rounded border border-gray-400 px-3 py-2 text-base"
+          >
+            <option value="">—</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-semibold">Album</label>
+          <select
+            name="albumId"
+            value={form.albumId ?? ''}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                albumId: e.target.value ? Number(e.target.value) : undefined,
+              })
+            }
+            className="w-full rounded border border-gray-400 px-3 py-2 text-base"
+          >
+            <option value="">—</option>
+            {albums.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.label || `Album #${a.id}`}
               </option>
             ))}
           </select>

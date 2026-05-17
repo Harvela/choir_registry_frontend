@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 import {
+  Boxes,
   Calendar,
   ChevronDown,
   ChevronRight,
@@ -15,12 +16,13 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { IconType } from 'react-icons';
 import { FaClock, FaMusic, FaPrayingHands, FaTrophy } from 'react-icons/fa';
 import { IoLogoUsd } from 'react-icons/io';
 import { TbLogout2 } from 'react-icons/tb';
 
+import { useContentTypes } from '@/lib/content/hooks';
 import { UserCategory, UserRole } from '@/lib/user/type';
 import { useAuth } from '@/providers/AuthProvider';
 
@@ -41,6 +43,7 @@ const Layout = ({ children }: { children: ReactNode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedDropdown, setExpandedDropdown] = useState<string | null>(null);
   const { logout, user } = useAuth();
+  const { data: contentTypes = [] } = useContentTypes();
 
   const handleLogout = () => {
     logout();
@@ -95,50 +98,92 @@ const Layout = ({ children }: { children: ReactNode }) => {
     },
   ];
 
-  const dropdownMenuItems: DropdownMenuItem[] = [
-    {
-      label: 'Musique',
-      icon: FaMusic,
-      items: [
-        {
-          path: '/admin/users/leads',
-          icon: Users,
-          label: 'Conducteurs',
-          roles: [UserRole.SUPER_ADMIN],
-        },
-        {
-          path: '/library',
-          icon: FaMusic,
-          label: 'Repertoire',
-          roles: [UserRole.SUPER_ADMIN, UserRole.LEAD],
-        },
-        {
-          path: '/shift',
-          icon: FaClock,
-          label: 'Horaire',
-          roles: [UserRole.SUPER_ADMIN, UserRole.LEAD],
-        },
-        {
-          path: '/rehearsal',
-          icon: FaMusic,
-          label: 'Répétitions',
-          roles: [UserRole.SUPER_ADMIN, UserRole.LEAD],
-        },
-        {
-          path: '/performance',
-          icon: FaTrophy,
-          label: 'Performances',
-          roles: [UserRole.SUPER_ADMIN, UserRole.LEAD],
-        },
-        {
-          path: '/louado',
-          icon: FaPrayingHands,
-          label: 'Louado',
-          roles: [UserRole.SUPER_ADMIN],
-        },
-      ],
-    },
-  ];
+  const dropdownMenuItems: DropdownMenuItem[] = useMemo(() => {
+    const contentRoles = [
+      UserRole.SUPER_ADMIN,
+      UserRole.ATTENDANCE_ADMIN,
+      UserRole.FINANCE_ADMIN,
+    ];
+    const typeItems = [...contentTypes]
+      .filter((t) => t.isActive)
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((t) => ({
+        path: `/admin/content/entries?typeId=${t.id}`,
+        icon: FileText,
+        label: t.name,
+        roles: contentRoles,
+      }));
+
+    return [
+      {
+        label: 'Contenu',
+        icon: Boxes,
+        items: [
+          {
+            path: '/admin/content',
+            icon: Boxes,
+            label: "Vue d'ensemble",
+            roles: contentRoles,
+          },
+          ...typeItems,
+          {
+            path: '/admin/content/types',
+            icon: Boxes,
+            label: 'Types (schéma)',
+            roles: contentRoles,
+          },
+          {
+            path: '/admin/content/entries',
+            icon: FileText,
+            label: 'Toutes les entrées',
+            roles: contentRoles,
+          },
+        ],
+      },
+      {
+        label: 'Musique',
+        icon: FaMusic,
+        items: [
+          {
+            path: '/admin/users/leads',
+            icon: Users,
+            label: 'Conducteurs',
+            roles: [UserRole.SUPER_ADMIN],
+          },
+          {
+            path: '/library',
+            icon: FaMusic,
+            label: 'Repertoire',
+            roles: [UserRole.SUPER_ADMIN, UserRole.LEAD],
+          },
+          {
+            path: '/shift',
+            icon: FaClock,
+            label: 'Horaire',
+            roles: [UserRole.SUPER_ADMIN, UserRole.LEAD],
+          },
+          {
+            path: '/rehearsal',
+            icon: FaMusic,
+            label: 'Répétitions',
+            roles: [UserRole.SUPER_ADMIN, UserRole.LEAD],
+          },
+          {
+            path: '/performance',
+            icon: FaTrophy,
+            label: 'Performances',
+            roles: [UserRole.SUPER_ADMIN, UserRole.LEAD],
+          },
+          {
+            path: '/louado',
+            icon: FaPrayingHands,
+            label: 'Louado',
+            roles: [UserRole.SUPER_ADMIN],
+          },
+        ],
+      },
+    ];
+  }, [contentTypes]);
 
   // Filter menu items based on user role and categories
   const filteredMenuItems = menuItems.filter((item) => {
@@ -185,16 +230,16 @@ const Layout = ({ children }: { children: ReactNode }) => {
     }))
     .filter((dropdown) => dropdown.items.length > 0);
 
-  // Check if user is admin (should see dropdown) or LEAD category user (should see direct menu items)
-  const isAdmin = user && user.role === UserRole.SUPER_ADMIN;
+  // Check if user is LEAD/WORSHIPPER category (should see direct menu items)
   const isLeadCategory = user && user.categories?.includes(UserCategory.LEAD);
   const isLouadoCategory =
     user && user.categories?.includes(UserCategory.WORSHIPPER);
 
   // Get LEAD-specific menu items for direct display
+  const musicDropdown = dropdownMenuItems.find((d) => d.label === 'Musique');
   const leadMenuItems =
-    (isLeadCategory || isLouadoCategory) && dropdownMenuItems[0]
-      ? dropdownMenuItems[0].items.filter((item) =>
+    (isLeadCategory || isLouadoCategory) && musicDropdown
+      ? musicDropdown.items.filter((item) =>
           item.path === '/admin/users/leads'
             ? user?.categories?.includes(UserCategory.LEAD) ||
               user?.role === UserRole.SUPER_ADMIN
@@ -223,46 +268,45 @@ const Layout = ({ children }: { children: ReactNode }) => {
             </Link>
           ))}
 
-          {/* Show dropdown only for admin users */}
-          {isAdmin &&
-            filteredDropdownMenuItems.map((dropdown) => (
-              <div key={dropdown.label} className="space-y-1">
-                <button
-                  onClick={() => toggleDropdown(dropdown.label)}
-                  className="flex w-full items-center justify-between rounded-lg p-2 text-white transition-colors hover:bg-gray-800 hover:text-white"
-                >
-                  <div className="flex items-center gap-3">
-                    {dropdown.icon && (
-                      <dropdown.icon className="size-6 shrink-0" />
-                    )}
-                    <span className="whitespace-nowrap text-base">
-                      {dropdown.label}
-                    </span>
-                  </div>
-                  {expandedDropdown === dropdown.label ? (
-                    <ChevronDown className="size-4 shrink-0" />
-                  ) : (
-                    <ChevronRight className="size-4 shrink-0" />
+          {/* Dropdown menus */}
+          {filteredDropdownMenuItems.map((dropdown) => (
+            <div key={dropdown.label} className="space-y-1">
+              <button
+                onClick={() => toggleDropdown(dropdown.label)}
+                className="flex w-full items-center justify-between rounded-lg p-2 text-white transition-colors hover:bg-gray-800 hover:text-white"
+              >
+                <div className="flex items-center gap-3">
+                  {dropdown.icon && (
+                    <dropdown.icon className="size-6 shrink-0" />
                   )}
-                </button>
-
-                {expandedDropdown === dropdown.label && (
-                  <div className="ml-6 space-y-1">
-                    {dropdown.items.map((item) => (
-                      <Link
-                        key={item.path}
-                        href={item.path}
-                        className="flex items-center gap-3 rounded-lg p-2 text-sm text-gray-300 transition-colors hover:bg-gray-800 hover:text-white"
-                        onClick={isMobile ? () => setIsOpen(false) : undefined}
-                      >
-                        {item.icon && <item.icon className="size-5 shrink-0" />}
-                        <span className="whitespace-nowrap">{item.label}</span>
-                      </Link>
-                    ))}
-                  </div>
+                  <span className="whitespace-nowrap text-base">
+                    {dropdown.label}
+                  </span>
+                </div>
+                {expandedDropdown === dropdown.label ? (
+                  <ChevronDown className="size-4 shrink-0" />
+                ) : (
+                  <ChevronRight className="size-4 shrink-0" />
                 )}
-              </div>
-            ))}
+              </button>
+
+              {expandedDropdown === dropdown.label && (
+                <div className="ml-6 space-y-1">
+                  {dropdown.items.map((item) => (
+                    <Link
+                      key={item.path}
+                      href={item.path}
+                      className="flex items-center gap-3 rounded-lg p-2 text-sm text-gray-300 transition-colors hover:bg-gray-800 hover:text-white"
+                      onClick={isMobile ? () => setIsOpen(false) : undefined}
+                    >
+                      {item.icon && <item.icon className="size-5 shrink-0" />}
+                      <span className="whitespace-nowrap">{item.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
 
           {/* Show direct menu items for LEAD category users */}
           {isLeadCategory &&
