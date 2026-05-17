@@ -69,7 +69,9 @@
         "prefer-destructuring": "off",
         "no-empty": "off",
         "@typescript-eslint/no-explicit-any": "off",
-        "@typescript-eslint/ban-ts-comment": "off"
+        "@typescript-eslint/ban-ts-comment": "off",
+        "no-continue": "off",
+        "no-void": "off"
       }
     }
   ]

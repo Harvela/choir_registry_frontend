@@ -8,9 +8,9 @@ import EntityRelationSelectField from './EntityRelationSelectField';
 import GalleryUploadField from './GalleryUploadField';
 import ImageUploadField from './ImageUploadField';
 import ProfileListField, { normalizeProfileList } from './ProfileListField';
-import VideoListField, { normalizeVideoList } from './VideoListField';
 import RelationSelectField from './RelationSelectField';
 import TinyMceField from './TinyMceField';
+import VideoListField, { normalizeVideoList } from './VideoListField';
 
 export type ContentDynamicFieldsProps = {
   definitions: ContentFieldDefinitionDto[];

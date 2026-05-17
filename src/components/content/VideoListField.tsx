@@ -4,8 +4,8 @@ import { Plus, Trash2, Upload } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 
 import { uploadContentVideo } from '@/lib/content/api';
-import { extractYouTubeId } from '@/lib/content/youtube';
 import type { VideoListItemDto } from '@/lib/content/types';
+import { extractYouTubeId } from '@/lib/content/youtube';
 
 import ImageUploadField from './ImageUploadField';
 
@@ -94,8 +94,7 @@ const VideoListField: React.FC<VideoListFieldProps> = ({
   };
 
   const addRow = () => onChange([...rows, emptyRow()]);
-  const removeRow = (idx: number) =>
-    onChange(rows.filter((_, i) => i !== idx));
+  const removeRow = (idx: number) => onChange(rows.filter((_, i) => i !== idx));
 
   const handleVideoUpload = async (idx: number, file: File) => {
     setUploadingIdx(idx);
@@ -110,7 +109,9 @@ const VideoListField: React.FC<VideoListFieldProps> = ({
   return (
     <div className="space-y-3">
       {label ? (
-        <span className="block text-sm font-medium text-slate-700">{label}</span>
+        <span className="block text-sm font-medium text-slate-700">
+          {label}
+        </span>
       ) : null}
       <div className="space-y-4">
         {rows.map((row, idx) => (

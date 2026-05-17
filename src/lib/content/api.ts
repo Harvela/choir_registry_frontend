@@ -1,13 +1,13 @@
 import { api, API_URL } from '@/config/api';
 
 import type { ContentListParams } from './query-keys';
-import { resolveUploadAssetUrl } from './uploadUrls';
 import type {
   ContentEntryDto,
   ContentFieldDefinitionDto,
   ContentTypeDto,
   PaginatedContentsDto,
 } from './types';
+import { resolveUploadAssetUrl } from './uploadUrls';
 
 export async function fetchContentTypes(): Promise<ContentTypeDto[]> {
   const { data } = await api.get<ContentTypeDto[]>('/content/types');

@@ -57,9 +57,7 @@ function formatCell(
   }
   if (fieldType === 'profile_list') {
     const rows = normalizeProfileList(raw);
-    const nonempty = rows.filter(
-      (r) => r.name || r.roleTitle || r.imageUrl,
-    );
+    const nonempty = rows.filter((r) => r.name || r.roleTitle || r.imageUrl);
     if (!nonempty.length) {
       return <span className="text-slate-400">—</span>;
     }
@@ -87,7 +85,9 @@ function formatCell(
           {first.name || first.roleTitle || '—'}
         </span>
         {rest.length > 0 ? (
-          <span className="shrink-0 text-xs text-slate-500">+{rest.length}</span>
+          <span className="shrink-0 text-xs text-slate-500">
+            +{rest.length}
+          </span>
         ) : null}
       </div>
     );

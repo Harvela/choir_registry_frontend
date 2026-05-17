@@ -383,10 +383,7 @@ function ContentEntryEditInner({ id }: { id: number }) {
                         </p>
                         <ul className="mt-3 space-y-2">
                           {rows.map((row) => (
-                            <li
-                              key={row.id}
-                              className="text-sm text-slate-800"
-                            >
+                            <li key={row.id} className="text-sm text-slate-800">
                               <span className="font-medium">{row.title}</span>
                               <span className="text-slate-500">
                                 {' '}

@@ -63,7 +63,9 @@ const ProfileListField: React.FC<ProfileListFieldProps> = ({
   return (
     <div className="space-y-3">
       {label ? (
-        <span className="block text-sm font-medium text-slate-700">{label}</span>
+        <span className="block text-sm font-medium text-slate-700">
+          {label}
+        </span>
       ) : null}
       <div className="space-y-4">
         {rows.map((row, idx) => (
@@ -86,7 +88,7 @@ const ProfileListField: React.FC<ProfileListFieldProps> = ({
               </button>
             </div>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-              <div className="sm:w-48 shrink-0">
+              <div className="shrink-0 sm:w-48">
                 <ImageUploadField
                   label="Photo"
                   value={row.imageUrl}
@@ -112,9 +114,7 @@ const ProfileListField: React.FC<ProfileListFieldProps> = ({
                     className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm"
                     value={row.roleTitle}
                     disabled={disabled}
-                    onChange={(e) =>
-                      setRow(idx, { roleTitle: e.target.value })
-                    }
+                    onChange={(e) => setRow(idx, { roleTitle: e.target.value })}
                   />
                 </label>
               </div>
