@@ -5,7 +5,13 @@ import toast from 'react-hot-toast';
 
 import AdminContentShell from '@/components/content/AdminContentShell';
 import ContentDynamicFields from '@/components/content/ContentDynamicFields';
+import { normalizeModeratorList } from '@/components/content/ModeratorListField';
 import { normalizeProfileList } from '@/components/content/ProfileListField';
+import { normalizeProgramList } from '@/components/content/ProgramListField';
+import { normalizeWeeklyProgramList } from '@/components/content/WeeklyProgramListField';
+import { normalizeSeoDefaults } from '@/components/content/SeoDefaultsField';
+import { normalizeSocialLinkList } from '@/components/content/SocialLinkListField';
+import { normalizeStringList } from '@/components/content/StringListField';
 import { normalizeVideoList } from '@/components/content/VideoListField';
 import {
   useApproveContentEntry,
@@ -398,6 +404,235 @@ function ContentEntryEditInner({ id }: { id: number }) {
                       </div>
                     );
                   }
+                  if (def.fieldType === 'social_link_list') {
+                    const rows = normalizeSocialLinkList(v);
+                    return (
+                      <div
+                        key={def.id}
+                        className="rounded-lg border border-slate-200 p-3"
+                      >
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          {label}
+                        </p>
+                        {!rows.length ? (
+                          <p className="mt-2 text-sm text-slate-500">—</p>
+                        ) : (
+                          <ul className="mt-3 space-y-1">
+                            {rows.map((row, i) => (
+                              <li key={i} className="text-sm text-slate-800">
+                                <span className="font-medium">
+                                  {row.label || '—'}
+                                </span>
+                                {row.url ? (
+                                  <span className="text-slate-500">
+                                    {' '}
+                                    · {row.url}
+                                  </span>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  }
+                  if (def.fieldType === 'seo_defaults') {
+                    const seo = normalizeSeoDefaults(v);
+                    return (
+                      <div
+                        key={def.id}
+                        className="rounded-lg border border-slate-200 p-3"
+                      >
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          {label}
+                        </p>
+                        <dl className="mt-2 space-y-2 text-sm text-slate-800">
+                          <div>
+                            <dt className="text-xs text-slate-500">Titre</dt>
+                            <dd>{seo.title || '—'}</dd>
+                          </div>
+                          <div>
+                            <dt className="text-xs text-slate-500">
+                              Description
+                            </dt>
+                            <dd className="whitespace-pre-wrap">
+                              {seo.description || '—'}
+                            </dd>
+                          </div>
+                          {seo.keywords?.trim() ? (
+                            <div>
+                              <dt className="text-xs text-slate-500">
+                                Mots-clés
+                              </dt>
+                              <dd>{seo.keywords}</dd>
+                            </div>
+                          ) : null}
+                          {seo.ogImage ? (
+                            <div>
+                              <dt className="text-xs text-slate-500">
+                                OG image
+                              </dt>
+                              <dd>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={resolveUploadAssetUrl(seo.ogImage)}
+                                  alt=""
+                                  className="mt-1 max-h-32 rounded object-contain"
+                                />
+                              </dd>
+                            </div>
+                          ) : null}
+                        </dl>
+                      </div>
+                    );
+                  }
+                  if (def.fieldType === 'program_list') {
+                    const rows = normalizeProgramList(v);
+                    return (
+                      <div
+                        key={def.id}
+                        className="rounded-lg border border-slate-200 p-3"
+                      >
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          {label}
+                        </p>
+                        {!rows.length ? (
+                          <p className="mt-2 text-sm text-slate-500">—</p>
+                        ) : (
+                          <ul className="mt-3 space-y-3">
+                            {rows.map((row, i) => (
+                              <li key={i} className="text-sm text-slate-800">
+                                <p className="font-mono text-xs text-indigo-700">
+                                  {row.timeRange || '—'}
+                                </p>
+                                <p className="font-medium">
+                                  {row.title || '—'}
+                                </p>
+                                {row.description ? (
+                                  <p className="text-slate-600">
+                                    {row.description}
+                                  </p>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  }
+                  if (def.fieldType === 'weekly_program_list') {
+                    const rows = normalizeWeeklyProgramList(v);
+                    return (
+                      <div
+                        key={def.id}
+                        className="rounded-lg border border-slate-200 p-3"
+                      >
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          {label}
+                        </p>
+                        {!rows.length ? (
+                          <p className="mt-2 text-sm text-slate-500">—</p>
+                        ) : (
+                          <ul className="mt-3 space-y-3">
+                            {rows.map((row, i) => (
+                              <li key={i} className="text-sm text-slate-800">
+                                <p className="font-medium">{row.title || '—'}</p>
+                                <p className="font-mono text-xs text-indigo-700">
+                                  {row.day || '—'} · {row.time || '—'}
+                                </p>
+                                {row.description ? (
+                                  <p className="text-slate-600">{row.description}</p>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    );
+                  }
+                  if (def.fieldType === 'moderator_list') {
+                    const rows = normalizeModeratorList(v);
+                    if (!rows.length) {
+                      return (
+                        <div
+                          key={def.id}
+                          className="rounded-lg border border-slate-200 p-3"
+                        >
+                          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                            {label}
+                          </p>
+                          <p className="mt-2 text-sm text-slate-500">—</p>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div
+                        key={def.id}
+                        className="rounded-lg border border-slate-200 p-3"
+                      >
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          {label}
+                        </p>
+                        <ul className="mt-3 space-y-3">
+                          {rows.map((row, i) => (
+                            <li
+                              key={i}
+                              className="flex gap-3 border-b border-slate-100 pb-3 last:border-0 last:pb-0"
+                            >
+                              {row.imageUrl ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={resolveUploadAssetUrl(row.imageUrl)}
+                                  alt=""
+                                  className="size-12 rounded-full object-cover ring-1 ring-slate-200"
+                                />
+                              ) : null}
+                              <div>
+                                <p className="font-medium text-slate-900">
+                                  {row.name || '—'}
+                                </p>
+                                <p className="text-sm text-slate-600">
+                                  {row.roleTitle || '—'}
+                                </p>
+                                {row.bio ? (
+                                  <p className="mt-1 text-sm text-slate-500">
+                                    {row.bio}
+                                  </p>
+                                ) : null}
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  }
+                  if (def.fieldType === 'string_list') {
+                    const rows = normalizeStringList(v);
+                    return (
+                      <div
+                        key={def.id}
+                        className="rounded-lg border border-slate-200 p-3"
+                      >
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          {label}
+                        </p>
+                        {!rows.length ? (
+                          <p className="mt-2 text-sm text-slate-500">—</p>
+                        ) : (
+                          <div className="mt-3 space-y-3">
+                            {rows.map((paragraph, i) => (
+                              <p
+                                key={i}
+                                className="whitespace-pre-wrap text-sm text-slate-800"
+                              >
+                                {paragraph || '—'}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
                   if (
                     def.fieldType === 'relation' ||
                     def.fieldType === 'entity_relation'
@@ -494,6 +729,7 @@ function ContentEntryEditInner({ id }: { id: number }) {
               fieldValues={fieldValues}
               setField={setField}
               disabled={updateMut.isPending}
+              excludeContentEntryId={entry.id}
             />
 
             <div className="flex flex-wrap gap-3 pt-2">

@@ -3,16 +3,27 @@
 import React, { useMemo } from 'react';
 
 import { contentEntryLabel } from '@/lib/content/content-entry-label';
+import type { ContentEntryDto } from '@/lib/content/types';
 import { useContentEntries, useContentTypes } from '@/lib/content/hooks';
+
+type RelationStoreAs = 'id' | 'linkedEntityId' | 'slug';
 
 type RelationSelectFieldProps = {
   targetContentTypeCode: string;
   multiple: boolean;
-  value: number | number[] | undefined;
-  onChange: (v: number | number[] | undefined) => void;
+  value: number | number[] | string | string[] | undefined;
+  onChange: (v: number | number[] | string | string[] | undefined) => void;
   disabled?: boolean;
   required?: boolean;
+  storeAs?: RelationStoreAs;
+  /** Exclude this content entry id from options (e.g. prevent self-parent) */
+  excludeContentEntryId?: number;
 };
+
+function entrySlug(row: ContentEntryDto): string | undefined {
+  const slug = row.fieldValues?.slug;
+  return typeof slug === 'string' && slug.trim() ? slug.trim() : undefined;
+}
 
 const RelationSelectField: React.FC<RelationSelectFieldProps> = ({
   targetContentTypeCode,
@@ -21,6 +32,8 @@ const RelationSelectField: React.FC<RelationSelectFieldProps> = ({
   onChange,
   disabled,
   required,
+  storeAs = 'id',
+  excludeContentEntryId,
 }) => {
   const { data: types = [] } = useContentTypes();
   const targetType = useMemo(
@@ -35,7 +48,44 @@ const RelationSelectField: React.FC<RelationSelectFieldProps> = ({
     page: 1,
   });
 
-  const items = list?.items ?? [];
+  const items = useMemo(() => {
+    const all = list?.items ?? [];
+    if (excludeContentEntryId == null) return all;
+    return all.filter((row) => row.id !== excludeContentEntryId);
+  }, [list?.items, excludeContentEntryId]);
+
+  const selectValue = useMemo(() => {
+    if (storeAs === 'slug') {
+      if (typeof value !== 'string' || !value.trim()) return '';
+      const match = items.find((row) => entrySlug(row) === value.trim());
+      return match ? String(match.id) : '';
+    }
+    if (storeAs === 'linkedEntityId') {
+      if (typeof value !== 'number' || !Number.isFinite(value)) return '';
+      const match = items.find((row) => row.linkedEntityId === value);
+      return match ? String(match.id) : '';
+    }
+    return typeof value === 'number' && Number.isFinite(value)
+      ? String(value)
+      : '';
+  }, [value, items, storeAs]);
+
+  const emitChange = (contentId: number | undefined) => {
+    if (contentId == null) {
+      onChange(undefined);
+      return;
+    }
+    const entry = items.find((row) => row.id === contentId);
+    if (storeAs === 'linkedEntityId') {
+      onChange(entry?.linkedEntityId ?? undefined);
+      return;
+    }
+    if (storeAs === 'slug') {
+      onChange(entry ? entrySlug(entry) : undefined);
+      return;
+    }
+    onChange(contentId);
+  };
 
   if (!targetContentTypeCode.trim()) {
     return (
@@ -54,7 +104,30 @@ const RelationSelectField: React.FC<RelationSelectFieldProps> = ({
   }
 
   if (multiple) {
-    const selected = Array.isArray(value) ? value : [];
+    const selectedIds =
+      storeAs === 'slug'
+        ? items
+            .filter((row) => {
+              const slug = entrySlug(row);
+              return (
+                typeof slug === 'string' &&
+                Array.isArray(value) &&
+                value.includes(slug)
+              );
+            })
+            .map((row) => String(row.id))
+        : storeAs === 'linkedEntityId'
+          ? items
+              .filter((row) =>
+                Array.isArray(value)
+                  ? value.includes(row.linkedEntityId)
+                  : false,
+              )
+              .map((row) => String(row.id))
+          : Array.isArray(value)
+            ? value.map(String)
+            : [];
+
     return (
       <div className="space-y-2">
         <select
@@ -62,13 +135,30 @@ const RelationSelectField: React.FC<RelationSelectFieldProps> = ({
           size={Math.min(12, Math.max(4, items.length || 4))}
           className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           disabled={disabled || isLoading}
-          value={selected.map(String)}
+          value={selectedIds}
           onChange={(e) => {
             const opts = Array.from(e.target.selectedOptions);
-            const ids = opts
+            const contentIds = opts
               .map((o) => Number(o.value))
               .filter(Number.isFinite);
-            onChange(ids);
+            if (storeAs === 'linkedEntityId') {
+              const linkedIds = contentIds
+                .map(
+                  (cid) => items.find((row) => row.id === cid)?.linkedEntityId,
+                )
+                .filter((x): x is number => typeof x === 'number');
+              onChange(linkedIds);
+            } else if (storeAs === 'slug') {
+              const slugs = contentIds
+                .map((cid) => {
+                  const row = items.find((item) => item.id === cid);
+                  return row ? entrySlug(row) : undefined;
+                })
+                .filter((x): x is string => typeof x === 'string');
+              onChange(slugs);
+            } else {
+              onChange(contentIds);
+            }
           }}
         >
           {items.map((row) => (
@@ -85,21 +175,18 @@ const RelationSelectField: React.FC<RelationSelectFieldProps> = ({
     );
   }
 
-  const single =
-    typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
-
   return (
     <select
       className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
       disabled={disabled || isLoading}
-      value={single}
+      value={selectValue}
       onChange={(e) => {
         const v = e.target.value;
         if (!v) {
-          onChange(undefined);
+          emitChange(undefined);
           return;
         }
-        onChange(Number(v));
+        emitChange(Number(v));
       }}
     >
       {!required ? <option value="">—</option> : null}

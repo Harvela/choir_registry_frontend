@@ -62,3 +62,35 @@ export type VideoListItemDto = {
   videoId?: string;
   videoUrl?: string;
 };
+
+export type SocialLinkItemDto = {
+  label: string;
+  url: string;
+};
+
+export type SeoDefaultsDto = {
+  title: string;
+  description: string;
+  ogImage: string;
+  keywords?: string;
+};
+
+export type ProgramListItemDto = {
+  timeRange: string;
+  title: string;
+  description?: string;
+};
+
+export type WeeklyProgramListItemDto = {
+  title: string;
+  day: string;
+  time: string;
+  description: string;
+};
+
+export type ModeratorListItemDto = {
+  name: string;
+  roleTitle: string;
+  bio?: string;
+  imageUrl?: string;
+};

@@ -28,6 +28,12 @@ const FIELD_TYPES = [
   'images',
   'profile_list',
   'video_list',
+  'social_link_list',
+  'seo_defaults',
+  'program_list',
+  'weekly_program_list',
+  'moderator_list',
+  'string_list',
   'relation',
   'entity_relation',
 ] as const;

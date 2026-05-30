@@ -4,7 +4,13 @@ import { useRouter } from 'next/router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import AdminContentShell from '@/components/content/AdminContentShell';
+import { normalizeModeratorList } from '@/components/content/ModeratorListField';
 import { normalizeProfileList } from '@/components/content/ProfileListField';
+import { normalizeProgramList } from '@/components/content/ProgramListField';
+import { normalizeWeeklyProgramList } from '@/components/content/WeeklyProgramListField';
+import { normalizeSeoDefaults } from '@/components/content/SeoDefaultsField';
+import { normalizeSocialLinkList } from '@/components/content/SocialLinkListField';
+import { normalizeStringList } from '@/components/content/StringListField';
 import { normalizeVideoList } from '@/components/content/VideoListField';
 import { useContentEntries, useContentType } from '@/lib/content/hooks';
 import type { ContentEntryDto } from '@/lib/content/types';
@@ -100,6 +106,66 @@ function formatCell(
       <span className="text-xs text-slate-700">
         {rows.length} vidéo{rows.length > 1 ? 's' : ''}
         {first?.title ? ` · ${first.title}` : ''}
+      </span>
+    );
+  }
+  if (fieldType === 'social_link_list') {
+    const rows = normalizeSocialLinkList(raw);
+    if (!rows.length) return <span className="text-slate-400">—</span>;
+    return (
+      <span className="text-xs text-slate-700">
+        {rows.length} lien{rows.length > 1 ? 's' : ''}
+        {rows[0]?.label ? ` · ${rows[0].label}` : ''}
+      </span>
+    );
+  }
+  if (fieldType === 'seo_defaults') {
+    const seo = normalizeSeoDefaults(raw);
+    const t = seo.title || seo.description;
+    return t ? (
+      <span className="text-xs text-slate-700">{t.slice(0, 60)}</span>
+    ) : (
+      <span className="text-slate-400">—</span>
+    );
+  }
+  if (fieldType === 'program_list') {
+    const rows = normalizeProgramList(raw);
+    if (!rows.length) return <span className="text-slate-400">—</span>;
+    return (
+      <span className="text-xs text-slate-700">
+        {rows.length} étape{rows.length > 1 ? 's' : ''}
+        {rows[0]?.title ? ` · ${rows[0].title}` : ''}
+      </span>
+    );
+  }
+  if (fieldType === 'weekly_program_list') {
+    const rows = normalizeWeeklyProgramList(raw);
+    if (!rows.length) return <span className="text-slate-400">—</span>;
+    return (
+      <span className="text-xs text-slate-700">
+        {rows.length} programme{rows.length > 1 ? 's' : ''}
+        {rows[0]?.title ? ` · ${rows[0].title}` : ''}
+      </span>
+    );
+  }
+  if (fieldType === 'moderator_list') {
+    const rows = normalizeModeratorList(raw);
+    if (!rows.length) return <span className="text-slate-400">—</span>;
+    return (
+      <span className="text-xs text-slate-700">
+        {rows.length} intervenant{rows.length > 1 ? 's' : ''}
+        {rows[0]?.name ? ` · ${rows[0].name}` : ''}
+      </span>
+    );
+  }
+  if (fieldType === 'string_list') {
+    const rows = normalizeStringList(raw);
+    if (!rows.length) return <span className="text-slate-400">—</span>;
+    const first = rows[0]?.trim();
+    return (
+      <span className="text-xs text-slate-700">
+        {rows.length} paragraphe{rows.length > 1 ? 's' : ''}
+        {first ? ` · ${first.slice(0, 40)}${first.length > 40 ? '…' : ''}` : ''}
       </span>
     );
   }

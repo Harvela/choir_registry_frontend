@@ -7,8 +7,20 @@ import type { ContentFieldDefinitionDto } from '@/lib/content/types';
 import EntityRelationSelectField from './EntityRelationSelectField';
 import GalleryUploadField from './GalleryUploadField';
 import ImageUploadField from './ImageUploadField';
+import ModeratorListField, {
+  normalizeModeratorList,
+} from './ModeratorListField';
 import ProfileListField, { normalizeProfileList } from './ProfileListField';
+import ProgramListField, { normalizeProgramList } from './ProgramListField';
 import RelationSelectField from './RelationSelectField';
+import WeeklyProgramListField, {
+  normalizeWeeklyProgramList,
+} from './WeeklyProgramListField';
+import SeoDefaultsField, { normalizeSeoDefaults } from './SeoDefaultsField';
+import SocialLinkListField, {
+  normalizeSocialLinkList,
+} from './SocialLinkListField';
+import StringListField, { normalizeStringList } from './StringListField';
 import TinyMceField from './TinyMceField';
 import VideoListField, { normalizeVideoList } from './VideoListField';
 
@@ -17,11 +29,14 @@ export type ContentDynamicFieldsProps = {
   fieldValues: Record<string, unknown>;
   setField: (key: string, value: unknown) => void;
   disabled?: boolean;
+  /** Current entry id — used to exclude self from relation pickers */
+  excludeContentEntryId?: number;
 };
 
 function relationMeta(def: ContentFieldDefinitionDto): {
   code: string;
   multiple: boolean;
+  storeAs: 'id' | 'linkedEntityId' | 'slug';
 } {
   const val = def.validation ?? {};
   const code =
@@ -29,7 +44,13 @@ function relationMeta(def: ContentFieldDefinitionDto): {
       ? val.targetContentTypeCode
       : '';
   const multiple = val.multiple === true;
-  return { code, multiple };
+  const storeAs =
+    val.storeAs === 'linkedEntityId'
+      ? 'linkedEntityId'
+      : val.storeAs === 'slug'
+        ? 'slug'
+        : 'id';
+  return { code, multiple, storeAs };
 }
 
 function entityRelationMeta(def: ContentFieldDefinitionDto): {
@@ -50,6 +71,7 @@ const ContentDynamicFields: React.FC<ContentDynamicFieldsProps> = ({
   fieldValues,
   setField,
   disabled,
+  excludeContentEntryId,
 }) => {
   const defs = [...definitions].sort((a, b) => a.sortOrder - b.sortOrder);
 
@@ -214,15 +236,104 @@ const ContentDynamicFields: React.FC<ContentDynamicFieldsProps> = ({
           );
         }
 
+        if (def.fieldType === 'social_link_list') {
+          return (
+            <div key={def.id} className="block text-sm">
+              <SocialLinkListField
+                label={def.label || def.fieldKey}
+                value={normalizeSocialLinkList(v)}
+                disabled={disabled}
+                onChange={(rows) => setField(def.fieldKey, rows)}
+              />
+            </div>
+          );
+        }
+
+        if (def.fieldType === 'seo_defaults') {
+          return (
+            <div key={def.id} className="block text-sm">
+              <SeoDefaultsField
+                label={def.label || def.fieldKey}
+                value={normalizeSeoDefaults(v)}
+                disabled={disabled}
+                onChange={(next) => setField(def.fieldKey, next)}
+              />
+            </div>
+          );
+        }
+
+        if (def.fieldType === 'program_list') {
+          return (
+            <div key={def.id} className="block text-sm">
+              <ProgramListField
+                label={def.label || def.fieldKey}
+                value={normalizeProgramList(v)}
+                disabled={disabled}
+                onChange={(rows) => setField(def.fieldKey, rows)}
+              />
+            </div>
+          );
+        }
+
+        if (def.fieldType === 'weekly_program_list') {
+          return (
+            <div key={def.id} className="block text-sm">
+              <WeeklyProgramListField
+                label={def.label || def.fieldKey}
+                value={normalizeWeeklyProgramList(v)}
+                disabled={disabled}
+                onChange={(rows) => setField(def.fieldKey, rows)}
+              />
+            </div>
+          );
+        }
+
+        if (def.fieldType === 'moderator_list') {
+          return (
+            <div key={def.id} className="block text-sm">
+              <ModeratorListField
+                label={def.label || def.fieldKey}
+                value={normalizeModeratorList(v)}
+                disabled={disabled}
+                onChange={(rows) => setField(def.fieldKey, rows)}
+              />
+            </div>
+          );
+        }
+
+        if (def.fieldType === 'string_list') {
+          return (
+            <div key={def.id} className="block text-sm">
+              <StringListField
+                label={def.label || def.fieldKey}
+                value={normalizeStringList(v)}
+                disabled={disabled}
+                onChange={(rows) => setField(def.fieldKey, rows)}
+              />
+            </div>
+          );
+        }
+
         if (def.fieldType === 'relation') {
-          const { code, multiple } = relationMeta(def);
-          const rv = multiple
-            ? Array.isArray(v)
-              ? v.filter((x): x is number => typeof x === 'number')
-              : []
-            : typeof v === 'number'
-              ? v
-              : undefined;
+          const { code, multiple, storeAs } = relationMeta(def);
+          let rv: number | number[] | string | string[] | undefined;
+          if (storeAs === 'slug') {
+            rv = multiple
+              ? Array.isArray(v)
+                ? v.filter((x): x is string => typeof x === 'string')
+                : []
+              : typeof v === 'string'
+                ? v
+                : undefined;
+          } else {
+            rv = multiple
+              ? Array.isArray(v)
+                ? v.filter((x): x is number => typeof x === 'number')
+                : []
+              : typeof v === 'number'
+                ? v
+                : undefined;
+          }
 
           return (
             <label key={def.id} className="block text-sm">
@@ -230,7 +341,9 @@ const ContentDynamicFields: React.FC<ContentDynamicFieldsProps> = ({
               <RelationSelectField
                 targetContentTypeCode={code}
                 multiple={multiple}
-                value={rv as number | number[] | undefined}
+                storeAs={storeAs}
+                excludeContentEntryId={excludeContentEntryId}
+                value={rv}
                 required={def.required}
                 disabled={disabled}
                 onChange={(next) => setField(def.fieldKey, next)}
